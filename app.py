@@ -24,16 +24,21 @@ records_table = dynamodb_resource.Table(USERS_TABLE)
 def get_records():
     year = request.args.get('year')
     student_id = request.args.get('student_id')
+    course = request.args.get('course')
 
-    if (not student_id or not year):
-        return jsonify({
-            'error': 'Please provide both "student_id" and "year"'
-        }), 400
+    result = None
 
-    result = records_table.query(
-        IndexName='year-index',
-        KeyConditionExpression=Key('student_id').eq(student_id) & Key('year').eq(year)
-    )
+    if (student_id and year):
+        result = records_table.query(
+            IndexName='year-index',
+            KeyConditionExpression=Key('student_id').eq(student_id) & Key('year').eq(year)
+        )
+
+    if (year and course):
+        result = records_table.query(
+            IndexName='course-year-index',
+            KeyConditionExpression=Key('course').eq(course) & Key('year').eq(year)
+        )
 
     items = result['Items']
     return jsonify(items)
