@@ -17,17 +17,30 @@ if os.environ.get('IS_OFFLINE'):
 USERS_TABLE = os.environ['USERS_TABLE']
 
 
-@app.route('/users/<string:user_id>')
-def get_user(user_id):
+@app.route('/records', methods=['GET'])
+def get_record():
+    student_id = request.args.get('student_id')
+    course = request.args.get('course')
+
     result = dynamodb_client.get_item(
-        TableName=USERS_TABLE, Key={'userId': {'S': user_id}}
+        TableName=USERS_TABLE,
+        Key={
+            'student_id': {'S': student_id},
+            'course': {'S': course}
+        }
     )
+
     item = result.get('Item')
+
     if not item:
-        return jsonify({'error': 'Could not find user with provided "userId"'}), 404
+        return jsonify({'error': 'Could not find user with provided "student_id" and "course"'}), 404
 
     return jsonify(
-        {'userId': item.get('userId').get('S'), 'name': item.get('name').get('S')}
+        {
+            'student_id': item.get('student_id').get('S'),
+            'course': item.get('course').get('S'),
+            'year': item.get('year').get('S'),
+        }
     )
 
 
@@ -36,11 +49,10 @@ def create_record():
     student_id = request.json.get('student_id')
     course = request.json.get('course')
     year = request.json.get('year')
-    grade = request.json.get('grade')
 
-    if (not student_id or not course or not year or not grade):
+    if (not student_id or not course or not year):
         return jsonify({
-            'error': 'Please provide both "student_id", "course", "year" and "grade"'
+            'error': 'Please provide both "student_id", "course" and "year"'
         }), 400
 
     dynamodb_client.put_item(
@@ -49,7 +61,6 @@ def create_record():
             'student_id': {'S': student_id},
             'course': {'S': course},
             'year': {'S': year},
-            'grade': {'S': grade}
         }
     )
 
@@ -57,7 +68,6 @@ def create_record():
         'student_id': student_id,
         'course': course,
         'year': year,
-        'grade': grade
     })
 
 
