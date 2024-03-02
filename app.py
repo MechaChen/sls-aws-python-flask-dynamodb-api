@@ -1,12 +1,14 @@
 import os
 
 import boto3
+from boto3.dynamodb.conditions import Key, Attr
 from flask import Flask, jsonify, make_response, request
 
 app = Flask(__name__)
 
 
 dynamodb_client = boto3.client('dynamodb')
+dynamodb_resource = boto3.resource('dynamodb')
 
 if os.environ.get('IS_OFFLINE'):
     dynamodb_client = boto3.client(
@@ -15,9 +17,30 @@ if os.environ.get('IS_OFFLINE'):
 
 
 USERS_TABLE = os.environ['USERS_TABLE']
+records_table = dynamodb_resource.Table(USERS_TABLE)
 
 
 @app.route('/records', methods=['GET'])
+def get_records():
+    year = request.args.get('year')
+    student_id = request.args.get('student_id')
+
+    if (not student_id or not year):
+        return jsonify({
+            'error': 'Please provide both "student_id" and "year"'
+        }), 400
+
+    result = records_table.query(
+        IndexName='year-index',
+        KeyConditionExpression=Key('student_id').eq(student_id) & Key('year').eq(year)
+    )
+
+    items = result['Items']
+    return jsonify(items)
+
+
+
+@app.route('/record', methods=['GET'])
 def get_record():
     student_id = request.args.get('student_id')
     course = request.args.get('course')
@@ -44,7 +67,7 @@ def get_record():
     )
 
 
-@app.route('/records', methods=['POST'])
+@app.route('/record', methods=['POST'])
 def create_record():
     student_id = request.json.get('student_id')
     course = request.json.get('course')

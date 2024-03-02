@@ -23,6 +23,10 @@ provider:
             - dynamodb:DeleteItem
           Resource:
             - Fn::GetAtt: [UsersTable, Arn]
+            - Fn::Join:
+                - ""
+                - - Fn::GetAtt: [UsersTable, Arn]
+                  - "/index/*"
   environment:
     USERS_TABLE: ${self:custom.tableName}
 
